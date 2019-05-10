@@ -151,34 +151,28 @@ public class SwiftyTesseract {
   ///   - image: The image to perform recognition on
   ///   - completionHandler: The action to be performed on the recognized string
   ///
-  public func performOCR(on image: UIImage, completionHandler: @escaping (String?) -> ()) {
+  public func performOCR(on image: UIImage) -> Result<String, Error> {
     let _ = semaphore.wait(timeout: .distantFuture)
     
-    // pixImage is a var because it has to be passed as an inout paramter to pixDestroy to release the memory allocation
-    var pixImage: Pix
+    let pixResult = createPix(from: image)
+    pixResult.do { pix in
+      TessBaseAPISetImage2(tesseract, pix)
+      
+      // This is contained in the `do` block because attempting to get the source resolution
+      // if an image has not been set traps execution
+      if TessBaseAPIGetSourceYResolution(tesseract) < 70 {
+        TessBaseAPISetSourceResolution(tesseract, 300)
+      }
+    }
     
     defer {
-      // Release the Pix instance from memory
-      pixDestroy(&pixImage)
+      // Release the Pix instance from memory if it exists
+      pixResult.destroyPix()
       semaphore.signal()
     }
 
-    do {
-      pixImage = try createPix(from: image)
-    } catch {
-      completionHandler(nil)
-      return
-    }
-
-    TessBaseAPISetImage2(tesseract, pixImage)
-
-    if TessBaseAPIGetSourceYResolution(tesseract) < 70 {
-      TessBaseAPISetSourceResolution(tesseract, 300)
-    }
-    
     guard let tesseractString = TessBaseAPIGetUTF8Text(tesseract) else {
-      completionHandler(nil)
-      return
+      return .failure(SwiftyTesseractError.unableToExtractTextFromImage)
     }
     
     defer {
@@ -187,8 +181,7 @@ public class SwiftyTesseract {
     }
     
     let swiftString = String(tesseractString: tesseractString)
-    completionHandler(swiftString)
-    
+    return .success(swiftString)
   }
   
   /// Takes an array UIImages and returns the PDF as a `Data` object.
@@ -216,11 +209,11 @@ public class SwiftyTesseract {
   
   // MARK: - Helper functions
 
-  private func createPix(from image: UIImage) throws -> Pix {
-    guard let data = image.pngData() else { throw SwiftyTesseractError.imageConversionError }
+  private func createPix(from image: UIImage) -> Result<Pix, Error> {
+    guard let data = image.pngData() else { return .failure(SwiftyTesseractError.imageConversionError) }
     let rawPointer = (data as NSData).bytes
     let uint8Pointer = rawPointer.assumingMemoryBound(to: UInt8.self)
-    return pixReadMem(uint8Pointer, data.count)
+    return .success(pixReadMem(uint8Pointer, data.count))
   }
   
   private func setTesseractVariable(_ variableName: TesseractVariableName, value: String) {
@@ -246,10 +239,10 @@ public class SwiftyTesseract {
   }
   
   private func render(_ images: [UIImage], with renderer: OpaquePointer) throws {
-    let pixImages = try images.map(createPix)
+    let pixImages = images.map(createPix)
     
     defer {
-      for var pix in pixImages { pixDestroy(&pix) }
+      for var pix in pixImages { pix.destroyPix() }
     }
     
     try pixImages.enumerated().forEach { [weak self] pageNumber, pix in
@@ -273,5 +266,23 @@ public class SwiftyTesseract {
     }
     
     return renderer
+  }
+}
+
+extension Result {
+  func `do`(_ fn: (Success) -> ()) {
+    switch self {
+    case .success(let value): fn(value)
+    default: return
+    }
+  }
+}
+
+extension Result where Success == Pix {
+  func destroyPix() {
+    switch self {
+    case .success(var pix): pixDestroy(&pix)
+    default: return
+    }
   }
 }

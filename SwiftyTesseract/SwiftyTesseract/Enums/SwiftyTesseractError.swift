@@ -8,6 +8,7 @@
 
 enum SwiftyTesseractError: Error {
   case imageConversionError
+  case unableToExtractTextFromImage
   case unableToCreateRenderer
   case unableToBeginDocument
   case unableToProcessPage
