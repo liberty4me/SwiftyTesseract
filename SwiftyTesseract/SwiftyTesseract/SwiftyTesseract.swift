@@ -282,7 +282,7 @@ extension SwiftyTesseract {
   }
 }
 
-extension Result {
+public extension Result {
   func `do`(_ fn: (Success) -> ()) {
     switch self {
     case .success(let value): fn(value)

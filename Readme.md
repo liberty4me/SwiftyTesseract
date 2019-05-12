@@ -1,5 +1,5 @@
 # SwiftyTesseract
-![pod-version](https://img.shields.io/cocoapods/v/SwiftyTesseract.svg) [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage) ![platforms](https://img.shields.io/badge/Platform-iOS%209.0%20%2B-lightgrey.svg) ![swift-version](https://img.shields.io/badge/Swift-4.2-orange.svg) [![Build Status](https://travis-ci.org/SwiftyTesseract/SwiftyTesseract.svg?branch=master)](https://travis-ci.org/SwiftyTesseract/SwiftyTesseract)
+![pod-version](https://img.shields.io/cocoapods/v/SwiftyTesseract.svg) [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage) ![platforms](https://img.shields.io/badge/Platform-iOS%209.0%20%2B-lightgrey.svg) ![swift-version](https://img.shields.io/badge/Swift-5.0-orange.svg) [![Build Status](https://travis-ci.org/SwiftyTesseract/SwiftyTesseract.svg?branch=master)](https://travis-ci.org/SwiftyTesseract/SwiftyTesseract)
 
 # Using SwiftyTesseract in Your Project
 Import the module
@@ -14,15 +14,33 @@ Or with multiple languages:
 ```swift
 let swiftyTesseract = SwiftyTesseract(languages: [.english, .french, .italian])
 ```
-To perform OCR, simply pass a `UIImage` to the `performOCR(on:completionHandler:)` method and handle the recognized string in the completion handler:
+To perform OCR, simply pass a `UIImage` to the `performOCR(on:)` method to receive a `Result<String, Error>`:
 ```swift
 guard let image = UIImage(named: "someImageWithText.jpg") else { return }
-swiftyTesseract.performOCR(on: image) { recognizedString in
 
-  guard let recognizedString = recognizedString else { return }
-  print(recognizedString)
-
+let result = swiftyTesseract.performOCR(on: image)
+switch result {
+  case .success(let string): print(string)
+  case .failure: //Handle the error
 }
+```
+
+Writing a switch statement, `if-case-let`, or `guard-case-let` can feel a little cumbersome if you don't care about the error case, so the library provides an extension on top of `Result` to provide a method named `do`:
+```swift
+let result = swiftyTesseract.performOCR(on: image)
+result.do { string in
+  print(string)
+}
+```
+If you don't need to hold onto the result for anything, this could be further refined down to
+```swift
+swiftyTesseract.performOCR(on: image).do { string in
+  print(string)
+}
+```
+And you could take it a step further by refining it down to
+```swift
+swiftyTesseract.performOCR(on: image).do(print)
 ```
 
 ## A Note on Initializer Defaults
