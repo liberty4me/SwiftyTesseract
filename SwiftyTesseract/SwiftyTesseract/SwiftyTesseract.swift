@@ -154,7 +154,10 @@ public class SwiftyTesseract {
   public func performOCR(on image: UIImage) -> Result<String, Error> {
     let _ = semaphore.wait(timeout: .distantFuture)
     
-    let pixResult = createPix(from: image)
+    let pixResult = Result {
+      try createPix(from: image)
+    }
+    
     pixResult.do { pix in
       TessBaseAPISetImage2(tesseract, pix)
       
@@ -191,29 +194,25 @@ public class SwiftyTesseract {
   /// - Parameter images: Array of UIImages to perform OCR on
   /// - Returns: PDF `Data` object
   /// - Throws: SwiftyTesseractError
-  public func createPDF(from images: [UIImage]) throws -> Data {
+  public func createPDF(from images: [UIImage]) -> Result<Data, Error> {
     let _ = semaphore.wait(timeout: .distantFuture)
     defer {
       semaphore.signal()
     }
     
-    // create unique file path
-    let filepath = try processPDF(images: images)
-    
-    // get data from pdf and remove file
-    let data = try Data(contentsOf: filepath)
-    try FileManager.default.removeItem(at: filepath)
-    
-    return data
+    return Result {
+      try createPDF(from: images)
+    }
   }
-  
-  // MARK: - Helper functions
+}
 
-  private func createPix(from image: UIImage) -> Result<Pix, Error> {
-    guard let data = image.pngData() else { return .failure(SwiftyTesseractError.imageConversionError) }
+// MARK: - Helper Functions
+extension SwiftyTesseract {
+  private func createPix(from image: UIImage) throws -> Pix {
+    guard let data = image.pngData() else { throw SwiftyTesseractError.imageConversionError }
     let rawPointer = (data as NSData).bytes
     let uint8Pointer = rawPointer.assumingMemoryBound(to: UInt8.self)
-    return .success(pixReadMem(uint8Pointer, data.count))
+    return pixReadMem(uint8Pointer, data.count)
   }
   
   private func setTesseractVariable(_ variableName: TesseractVariableName, value: String) {
@@ -222,6 +221,20 @@ public class SwiftyTesseract {
 
   private func setEnvironmentVariable(_ variableName: TesseractVariableName, value: String) {
     setenv(variableName.rawValue, value, 1)
+  }
+}
+
+// MARK: - PDF Helper Functions
+extension SwiftyTesseract {
+  private func createPDF(from images: [UIImage]) throws -> Data {
+    // create unique file path
+    let filepath = try processPDF(images: images)
+    
+    // get data from pdf and remove file
+    let data = try Data(contentsOf: filepath)
+    try FileManager.default.removeItem(at: filepath)
+    
+    return data
   }
   
   private func processPDF(images: [UIImage]) throws -> URL {
@@ -239,10 +252,10 @@ public class SwiftyTesseract {
   }
   
   private func render(_ images: [UIImage], with renderer: OpaquePointer) throws {
-    let pixImages = images.map(createPix)
+    let pixImages = try images.map(createPix)
     
     defer {
-      for var pix in pixImages { pix.destroyPix() }
+      for var pix in pixImages { pixDestroy(&pix) }
     }
     
     try pixImages.enumerated().forEach { [weak self] pageNumber, pix in
