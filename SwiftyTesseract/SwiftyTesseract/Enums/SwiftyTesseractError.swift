@@ -6,7 +6,7 @@
 //  Copyright © 2018 Steven Sherry. All rights reserved.
 //
 
-enum SwiftyTesseractError: Error {
+public enum SwiftyTesseractError: Error {
   case imageConversionError
   case unableToExtractTextFromImage
   case unableToCreateRenderer

@@ -7,7 +7,7 @@
 //
 
 import XCTest
-@testable import SwiftyTesseract
+import SwiftyTesseract
 import PDFKit
 
 /// Must be tested with legacy tessdata to verify results for `EngineMode.tesseractOnly`
