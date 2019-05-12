@@ -169,50 +169,53 @@ class SwiftyTesseractTests: XCTestCase {
       XCTFail("Should have failed with SwiftyTesseractError.unableToExtractTextFromImage")
     }
   }
-//
-//  func testWithCustomLanguage() {
-//    guard let image = UIImage(named: "MVRCode3.png", in: bundle, compatibleWith: nil) else { fatalError() }
-//    swiftyTesseract = SwiftyTesseract(language: .custom("OCRB"), bundle: bundle, engineMode: .tesseractOnly)
-//    let answer = """
-//    P<GRCELLINAS<<GEORGIOS<<<<<<<<<<<<<<<<<<<<<<
-//    AE00000057GRC6504049M1208283<<<<<<<<<<<<<<00
-//    """
-//    swiftyTesseract.performOCR(on: image) { string in
-//      guard let string = string else {
-//        XCTFail("String is nil")
-//        return
-//      }
-//      
-//      XCTAssertEqual(answer.trimmingCharacters(in: .whitespacesAndNewlines), string.trimmingCharacters(in: .whitespacesAndNewlines))
-//    }
-//  }
-//  
-//  func testLoadingStandardAndCustomLanguages() {
-//    // This test would otherwise crash if it was unable to load both languages
-//    swiftyTesseract = SwiftyTesseract(languages: [.custom("OCRB"), .english], bundle: bundle)
-//    XCTAssert(true)
-//  }
-//  
-//  func testMultipleThreads() {
-//    let bundle = Bundle(for: self.classForCoder)
-//    swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
-//    guard let image = UIImage(named: "image_sample.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
-//
-//    /*
-//     `measure` is used because it runs a given closure 10 times. If performOCR(on:completionHandler:) was not thread safe,
-//     there would be failures & crashes in various tests.
-//    */
-//    measure {
-//      DispatchQueue.global(qos: .userInitiated).async {
-//        self.swiftyTesseract.performOCR(on: image) { string in
-//          XCTAssertNotNil(string)
-//        }
-//      }
-//    }
-//    
-//    swiftyTesseract = nil
-//  
-//  }
+
+  func testWithCustomLanguage() {
+    guard let image = UIImage(named: "MVRCode3.png", in: bundle, compatibleWith: nil) else { fatalError() }
+    swiftyTesseract = SwiftyTesseract(language: .custom("OCRB"), bundle: bundle, engineMode: .tesseractOnly)
+    let answer = """
+    P<GRCELLINAS<<GEORGIOS<<<<<<<<<<<<<<<<<<<<<<
+    AE00000057GRC6504049M1208283<<<<<<<<<<<<<<00
+    """
+    let result = swiftyTesseract.performOCR(on: image)
+    
+    switch result {
+    case .success(let string):
+      XCTAssertEqual(answer.trimmingCharacters(in: .whitespacesAndNewlines), string.trimmingCharacters(in: .whitespacesAndNewlines))
+    case .failure(let error):
+      XCTFail("OCR failed with error: \(error.localizedDescription)")
+    }
+    
+  }
+
+  func testLoadingStandardAndCustomLanguages() {
+    // This test would otherwise crash if it was unable to load both languages
+    swiftyTesseract = SwiftyTesseract(languages: [.custom("OCRB"), .english], bundle: bundle)
+    XCTPass()
+  }
+
+  func testMultipleThreads() {
+    let bundle = Bundle(for: self.classForCoder)
+    swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
+    guard let image = UIImage(named: "image_sample.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+
+    /*
+     `measure` is used because it runs a given closure 10 times. If performOCR(on:completionHandler:) was not thread safe,
+     there would be failures & crashes in various tests.
+    */
+    measure {
+      DispatchQueue.global(qos: .userInitiated).async {
+        let result = self.swiftyTesseract.performOCR(on: image)
+        switch result {
+        case .success: XCTPass()
+        case .failure: XCTFail()
+        }
+      }
+    }
+    
+    swiftyTesseract = nil
+  
+  }
 //
 //  func testPDFSinglePage() throws {
 //    swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
@@ -245,4 +248,8 @@ class SwiftyTesseractTests: XCTestCase {
 //      XCTAssertEqual(data.count, 53248 * 3)
 //    }
 //  }
+}
+
+func XCTPass() {
+  XCTAssert(true)
 }
