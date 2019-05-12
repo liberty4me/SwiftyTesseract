@@ -2,8 +2,9 @@ osx_image: xcode10.2
 language: objective-c
 cache: cocoapods
 before_install:
+- gem install fastlane
 - gem install cocoapods # Since Travis is not always on latest version
 - pod repo update
 script:
-- set -o pipefail && xcodebuild test -project SwiftyTesseract/SwiftyTesseract.xcodeproj -scheme SwiftyTesseract -sdk iphonesimulator12.0 -destination 'platform=iOS Simulator,name=iPhone 8,OS=12.0' ONLY_ACTIVE_ARCH=NO | xcpretty
+- fastlane scan --project SwiftyTesseract/SwiftyTesseract.xcodeproj/ --scheme SwiftyTesseract
 - pod spec lint
