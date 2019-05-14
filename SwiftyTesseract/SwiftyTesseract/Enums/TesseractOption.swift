@@ -83,15 +83,6 @@ extension TesseractOption: Hashable {
   }
 }
 
-extension Set where Element == TesseractOption {
-  mutating func insert(option: TesseractOption) {
-    if contains(option) {
-      remove(option)
-    }
-    insert(option)
-  }
-}
-
 enum InternalTesseractVariable: CustomStringConvertible {
   case oldCharacterHeight(Int)
   
