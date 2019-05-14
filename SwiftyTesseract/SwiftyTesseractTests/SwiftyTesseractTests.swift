@@ -7,18 +7,17 @@
 //
 
 import XCTest
-import SwiftyTesseract
+@testable import SwiftyTesseract
 import PDFKit
 
 /// Must be tested with legacy tessdata to verify results for `EngineMode.tesseractOnly`
 class SwiftyTesseractTests: XCTestCase {
   
   var swiftyTesseract: SwiftyTesseract!
-  var bundle: Bundle!
   
   override func setUp() {
     super.setUp()
-    bundle = Bundle(for: self.classForCoder)
+    
   }
   
   override func tearDown() {
@@ -34,7 +33,7 @@ class SwiftyTesseractTests: XCTestCase {
   
   func testReturnStringTestImage() {
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
-    guard let image = UIImage(named: "image_sample.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    let image = getImage(named: "image_sample.jpg")
     let answer = "1234567890"
     
     let result = swiftyTesseract.performOCR(on: image)
@@ -49,7 +48,8 @@ class SwiftyTesseractTests: XCTestCase {
   
   func testRealImage() {
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
-    guard let image = UIImage(named: "IMG_1108.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    let image = getImage(named: "IMG_1108.jpg")
+
     let answer = "2F.SM.LC.SCA.12FT"
 
     let result = swiftyTesseract.performOCR(on: image)
@@ -64,9 +64,8 @@ class SwiftyTesseractTests: XCTestCase {
   }
 
   func testRealImage_withWhiteList() {
-    swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle, engineMode: .tesseractOnly)
-    swiftyTesseract.whiteList = "ABCDEFGHIJKLMNOPQRSTUVWXYZ."
-    guard let image = UIImage(named: "IMG_1108.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle, engineMode: .tesseractOnly, options: [.whiteList("ABCDEFGHIJKLMNOPQRSTUVWXYZ.")])
+    let image = getImage(named: "IMG_1108.jpg")
     
     let result = swiftyTesseract.performOCR(on: image)
     
@@ -77,12 +76,38 @@ class SwiftyTesseractTests: XCTestCase {
       XCTFail("OCR failed with error: \(error.localizedDescription)")
     }
     
+  }
+  
+  func testSettingWhiteList_ToEmptyString_ClearsUnderlyingWhiteList() {
+    swiftyTesseract = SwiftyTesseract(
+      language: .english,
+      bundle: bundle,
+      engineMode: .tesseractOnly,
+      options: [.whiteList("ABCDEFGHIJKLMNOPQRSTUVWXYZ.")]
+    )
+    swiftyTesseract.options.update(with: .whiteList(""))
+    
+    let image = getImage(named: "IMG_1108.jpg")
+    
+    let result = swiftyTesseract.performOCR(on: image)
+    
+    switch result {
+    case .success(let string):
+      XCTAssertTrue(string.contains("2") && string.contains("1"))
+    case .failure(let error):
+      XCTFail("OCR failed with error: \(error.localizedDescription)")
+    }
   }
 
   func testRealImage_withBlackList() {
-    swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle, engineMode: .tesseractOnly)
-    swiftyTesseract.blackList = "0123456789"
-    guard let image = UIImage(named: "IMG_1108.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    swiftyTesseract = SwiftyTesseract(
+      language: .english,
+      bundle: bundle,
+      engineMode: .tesseractOnly,
+      options: [.blackList("0123456789")]
+    )
+
+    let image = getImage(named: "IMG_1108.jpg")
     
     let result = swiftyTesseract.performOCR(on: image)
     
@@ -94,11 +119,15 @@ class SwiftyTesseractTests: XCTestCase {
     }
 
   }
+  
+
 
   func testMultipleSpacesImage_withPreserveMultipleSpaces() {
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle, engineMode: .tesseractOnly)
-    swiftyTesseract.preserveInterwordSpaces = true
-    guard let image = UIImage(named: "MultipleInterwordSpaces.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    
+    swiftyTesseract.options.update(with: .preserveInterwordSpaces(true))
+    
+    let image = getImage(named: "MultipleInterwordSpaces.jpg")
 
     let result = swiftyTesseract.performOCR(on: image)
     
@@ -113,8 +142,9 @@ class SwiftyTesseractTests: XCTestCase {
 
   func testNormalAndSmallFontsImage_withMinimumCharacterHeight() {
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle, engineMode: .tesseractOnly)
-    swiftyTesseract.minimumCharacterHeight = 15
-    guard let image = UIImage(named: "NormalAndSmallFonts.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    swiftyTesseract.options.update(with: .minimumCharacterHeight(15))
+    
+    let image = getImage(named: "NormalAndSmallFonts.jpg")
     
     let result = swiftyTesseract.performOCR(on: image)
     
@@ -141,7 +171,8 @@ class SwiftyTesseractTests: XCTestCase {
     Mon amour, je te aime encore trés beaucoup,
     Lenore
     """
-    guard let image = UIImage(named: "Lenore3.png", in: bundle, compatibleWith: nil) else { fatalError() }
+    
+    let image = getImage(named: "Lenore3.png")
     
     let result = swiftyTesseract.performOCR(on: image)
     
@@ -155,7 +186,6 @@ class SwiftyTesseractTests: XCTestCase {
   }
 
   func testWithNoImage() {
-    let bundle = Bundle(for: self.classForCoder)
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle, engineMode: .tesseractOnly)
     let image = UIImage()
     let result = swiftyTesseract.performOCR(on: image)
@@ -173,6 +203,9 @@ class SwiftyTesseractTests: XCTestCase {
   func testWithCustomLanguage() {
     guard let image = UIImage(named: "MVRCode3.png", in: bundle, compatibleWith: nil) else { fatalError() }
     swiftyTesseract = SwiftyTesseract(language: .custom("OCRB"), bundle: bundle, engineMode: .tesseractOnly)
+    
+//    let image = getImage(named: "MVRCode3.png")
+    
     let answer = """
     P<GRCELLINAS<<GEORGIOS<<<<<<<<<<<<<<<<<<<<<<
     AE00000057GRC6504049M1208283<<<<<<<<<<<<<<00
@@ -197,7 +230,7 @@ class SwiftyTesseractTests: XCTestCase {
   func testMultipleThreads() {
     let bundle = Bundle(for: self.classForCoder)
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
-    guard let image = UIImage(named: "image_sample.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    let image = getImage(named: "image_sample.jpg")
 
     /*
      `measure` is used because it runs a given closure 10 times. If performOCR(on:completionHandler:) was not thread safe,
@@ -219,7 +252,7 @@ class SwiftyTesseractTests: XCTestCase {
 
   func testPDFSinglePage() {
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
-    guard let image = UIImage(named: "image_sample.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
+    let image = getImage(named: "image_sample.jpg")
     
     let result = swiftyTesseract.createPDF(from: [image])
     
@@ -240,8 +273,8 @@ class SwiftyTesseractTests: XCTestCase {
 
   func testPDFMultiplePages() {
     swiftyTesseract = SwiftyTesseract(language: .english, bundle: bundle)
-    guard let image = UIImage(named: "image_sample.jpg", in: Bundle(for: self.classForCoder), compatibleWith: nil) else { fatalError() }
-    
+    let image = getImage(named: "image_sample.jpg")
+   
     let result = swiftyTesseract.createPDF(from: [image, image, image])
     
     switch result {
@@ -262,4 +295,22 @@ class SwiftyTesseractTests: XCTestCase {
 
 func XCTPass() {
   XCTAssert(true)
+}
+
+extension XCTestCase {
+  var bundle: Bundle {
+    return Bundle(for: self.classForCoder)
+  }
+  
+  func getImage(named name: String) -> UIImage {
+    guard let image = UIImage(
+      named: name,
+      in: bundle,
+      compatibleWith: nil
+    ) else {
+      fatalError()
+    }
+    
+    return image
+  }
 }
