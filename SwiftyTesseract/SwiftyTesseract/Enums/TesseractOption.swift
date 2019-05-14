@@ -97,6 +97,11 @@ enum InternalTesseractVariable: CustomStringConvertible {
     case .oldCharacterHeight(let int): return "\(int)"
     }
   }
+  
+  static func setOldHeightToZero(to tesseract: TessBaseAPI) {
+    let oldHeight = InternalTesseractVariable.oldCharacterHeight(0)
+    TessBaseAPISetVariable(tesseract, oldHeight.description, oldHeight.value)
+  }
 }
 
 enum TesseractEnvironment {

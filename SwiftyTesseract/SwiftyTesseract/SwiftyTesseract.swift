@@ -54,6 +54,9 @@ public class SwiftyTesseract {
                            TessOcrEngineMode(rawValue: engineMode.rawValue)) == 0
     else { fatalError(SwiftyTesseractError.initializationErrorMessage) }
     
+    // This variable's value somehow persists between deinit and init, default value should be set
+    InternalTesseractVariable.setOldHeightToZero(to: tesseract)
+    
     self.options.forEach { $0.setVariable(to: tesseract) }
     
   }
