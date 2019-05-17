@@ -27,7 +27,7 @@ public class SwiftyTesseract {
 
   public var options: Set<TesseractOption> {
     didSet {
-      options.forEach { $0.setVariable(to: tesseract) }
+      options.subtracting(options: oldValue).forEach { $0.setVariable(to: tesseract) }
     }
   }
   

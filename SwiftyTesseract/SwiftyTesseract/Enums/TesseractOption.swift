@@ -78,6 +78,10 @@ extension TesseractOption: Hashable {
     return lhs.description == rhs.description
   }
   
+  public static func ===(lhs: TesseractOption, rhs: TesseractOption) -> Bool {
+    return lhs == rhs && lhs.value == rhs.value
+  }
+  
   public func hash(into hasher: inout Hasher) {
     hasher.combine(description)
   }
@@ -119,6 +123,18 @@ extension TesseractEnvironment: CustomStringConvertible {
     switch self {
     case .tessDataPrefix: return "TESSDATA_PREFIX"
     }
+  }
+}
+
+extension Set where Element == TesseractOption {
+  func subtracting(options: Set<TesseractOption>) -> Set<TesseractOption> {
+    var copy = self
+    options.forEach { option in
+      if copy.contains(option) && copy.insert(option).memberAfterInsert === option {
+        copy.remove(option)
+      }
+    }
+    return copy
   }
 }
 
