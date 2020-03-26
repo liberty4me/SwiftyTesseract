@@ -156,18 +156,19 @@ public class SwiftyTesseract {
     
     // pixImage is a var because it has to be passed as an inout paramter to pixDestroy to release the memory allocation
     var pixImage: Pix
-    
-    defer {
-      // Release the Pix instance from memory
-      pixDestroy(&pixImage)
-      semaphore.signal()
-    }
 
     do {
       pixImage = try createPix(from: image)
     } catch {
       completionHandler(nil)
+      semaphore.signal()
       return
+    }
+
+    defer {
+      // Release the Pix instance from memory
+      pixDestroy(&pixImage)
+      semaphore.signal()
     }
 
     TessBaseAPISetImage2(tesseract, pixImage)
